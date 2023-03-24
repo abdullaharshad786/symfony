@@ -1,2 +1,1 @@
-# symfony
-Hi, This is my first time deploying an application.
+# symfony-6-blank
