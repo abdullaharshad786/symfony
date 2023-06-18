@@ -1,0 +1,44 @@
+# BitBucket Pipelines
+
+# Docker Image with PHP, Composer installed.
+image:
+  name: azcodes/educative-symfony-cicd:2023-05-29
+
+pipelines:
+  default:
+
+      # Run composer install, run php unit tests, change all files to open permissions and not hidden so when we zip files all files are zipped
+      - step:
+          name: Build and Test Code
+          script:
+            - composer install
+            - php bin/phpunit
+            - chmod -R 777 .
+
+      # Zip all files in current directory including hidden files and store them into an artifact to use later
+      - step:
+          name: Build and package app
+          script:
+            - zip -r app.zip .
+          artifacts:
+            - app.zip
+
+      # Deploy to Elastic Beanstalk S3 bucket from our zip file artifact using amazon/aws-cli docker image.
+      - step:
+          name: Deploy to Elastic Beanstalk
+          image: amazon/aws-cli
+          script:
+            - ls -la
+            - pipe: atlassian/aws-elasticbeanstalk-deploy:1.1.0
+              variables:
+                AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+                AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+                AWS_DEFAULT_REGION: $AWS_DEFAULT_REGION
+                APPLICATION_NAME: 'educative-symfony'
+                ENVIRONMENT_NAME: 'educative-symfony-dev'
+                ZIP_FILE: 'app.zip'
+                S3_BUCKET: 'elasticbeanstalk-us-east-1-$AWS_ACCOUNT_ID'
+                S3_KEY: 'educative-symfony'
+          artifacts:
+            - app.zip
+
